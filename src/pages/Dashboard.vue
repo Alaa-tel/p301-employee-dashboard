@@ -46,78 +46,28 @@
     <!-- Main Workspace - 2 Column Layout -->
     <div class="workspace">
       <!-- Left Column (70%) - Cases and Alerts -->
-      <div class="left-column">
-        <!-- SLA Alerts -->
-        <div class="panel">
-          <SLAAlerts :alerts="alerts" />
-        </div>
-
-        <!-- My Cases Table -->
-        <div class="panel">
-          <MyCases :cases="cases" />
-        </div>
-      </div>
+      <LeftPanel :cases="cases" :alerts="alerts" />
 
       <!-- Right Column (30%) - Tasks and Summary -->
-      <div class="right-column">
-        <!-- Follow-up Tasks -->
-        <div class="panel">
-          <FollowUpTasks :tasks="tasksToday" @toggle-task="toggleTask" />
-        </div>
-
-        <!-- Quick Stats Panel -->
-        <div class="panel stats-panel">
-          <div class="stats-title">Quick Stats</div>
-          <div class="stat-row">
-            <span class="stat-label">Cases Resolved</span>
-            <span class="stat-value">{{ dailyMetricsTotal.resolved }}</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">Cases Escalated</span>
-            <span class="stat-value escalated">{{ dailyMetricsTotal.escalated }}</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">Cases Created</span>
-            <span class="stat-value">{{ dailyMetricsTotal.created }}</span>
-          </div>
-          <div class="divider"></div>
-          <div class="stat-row">
-            <span class="stat-label">Avg Queue Wait</span>
-            <span class="stat-value">{{ avgQueueWait }}m</span>
-          </div>
-        </div>
-      </div>
+      <RightPanel
+        :tasks="tasksToday"
+        :daily-metrics="dailyMetrics"
+        :avg-queue-wait="avgQueueWait"
+        @toggle-task="toggleTask"
+      />
     </div>
 
     <!-- Full Width Sections Below -->
-    <div class="full-width-section">
-      <!-- Charts Row -->
-      <div class="charts-grid">
-        <div class="chart-container">
-          <QueueStatus :queues="queues" />
-        </div>
-        <div class="chart-container">
-          <DailyMetrics :metrics="dailyMetrics" />
-        </div>
-      </div>
-
-      <!-- Recent Touchpoints -->
-      <div class="touchpoints-container">
-        <RecentTouchpoints :touchpoints="touchpoints" />
-      </div>
-    </div>
+    <BottomSection :queues="queues" :metrics="dailyMetrics" :touchpoints="touchpoints" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import KPICard from '../components/KPICard.vue'
-import MyCases from '../components/MyCases.vue'
-import SLAAlerts from '../components/SLAAlerts.vue'
-import FollowUpTasks from '../components/FollowUpTasks.vue'
-import QueueStatus from '../components/QueueStatus.vue'
-import RecentTouchpoints from '../components/RecentTouchpoints.vue'
-import DailyMetrics from '../components/DailyMetrics.vue'
+import LeftPanel from '../components/panels/LeftPanel.vue'
+import RightPanel from '../components/panels/RightPanel.vue'
+import BottomSection from '../components/panels/BottomSection.vue'
 import {
   mockCases,
   mockTasks,
@@ -147,12 +97,6 @@ const followUpsDueCount = computed(() => getFollowUpDueCount())
 const avgQueueWait = computed(() => getAverageQueueWait())
 
 const tasksToday = computed(() => tasks.value.filter(t => t.dueDate === '2026-05-11'))
-
-const dailyMetricsTotal = computed(() => ({
-  resolved: dailyMetrics.value.reduce((sum, m) => sum + m.resolved, 0),
-  escalated: dailyMetrics.value.reduce((sum, m) => sum + m.escalated, 0),
-  created: dailyMetrics.value.reduce((sum, m) => sum + m.created, 0)
-}))
 
 onMounted(() => {
   updateTime()
@@ -194,179 +138,77 @@ function toggleTask(taskId: string): void {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
+/* Header - Compact */
 .dashboard-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  padding: 1.5rem;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
   background-color: #fff;
-  border-bottom: 1px solid #e8e8e8;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
 }
 
 .header-content h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.75rem;
+  margin: 0;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #1a1a1a;
 }
 
 .header-subtitle {
   margin: 0;
-  font-size: 0.9375rem;
-  color: #666;
+  font-size: 0.8125rem;
+  color: #999;
   font-weight: 500;
 }
 
 .header-time {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #1976D2;
   font-variant-numeric: tabular-nums;
 }
 
-/* KPI Section - Full Width */
+/* KPI Section - Minimal height */
 .kpi-section {
-  padding: 1rem;
+  padding: 0.75rem 1.5rem;
   background-color: #f5f5f5;
+  flex-shrink: 0;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
-  max-width: 100%;
 }
 
-/* Main Workspace */
+/* Main Workspace - Takes remaining space */
 .workspace {
   display: grid;
   grid-template-columns: 1fr 0.43fr;
   gap: 1rem;
-  padding: 1rem;
+  padding: 1rem 1.5rem;
   flex: 1;
-}
-
-.left-column {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.right-column {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.panel {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  min-height: 0;
   overflow: hidden;
 }
 
-/* Stats Panel */
-.stats-panel {
-  padding: 1rem;
+/* Desktop */
+@media (min-width: 1200px) {
+  /* Compact workspace */
 }
 
-.stats-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #e8e8e8;
-}
-
-.stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 0;
-  font-size: 0.875rem;
-}
-
-.stat-label {
-  color: #666;
-  font-weight: 500;
-}
-
-.stat-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1976D2;
-}
-
-.stat-value.escalated {
-  color: #FF5252;
-}
-
-.divider {
-  height: 1px;
-  background-color: #e8e8e8;
-  margin: 0.75rem 0;
-}
-
-/* Full Width Section */
-.full-width-section {
-  padding: 1rem;
-  background-color: #f5f5f5;
-}
-
-.charts-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.chart-container {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  padding: 1rem;
-  overflow: hidden;
-}
-
-.touchpoints-container {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  padding: 1rem;
-  overflow: hidden;
-}
-
-/* Responsive Design */
-@media (max-width: 1400px) {
-  .workspace {
-    grid-template-columns: 1fr 0.5fr;
-  }
-}
-
-@media (max-width: 1024px) {
+/* Tablet - Stack vertically */
+@media (max-width: 1199px) {
   .workspace {
     grid-template-columns: 1fr;
-    padding: 0.75rem;
-  }
-
-  .charts-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .header-time {
-    align-self: flex-start;
   }
 
   .kpi-grid {
@@ -374,74 +216,26 @@ function toggleTask(taskId: string): void {
   }
 }
 
+/* Mobile */
 @media (max-width: 768px) {
-  .dashboard {
-    padding: 0;
-  }
-
   .dashboard-header {
-    padding: 1rem;
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.5rem;
   }
 
   .header-content h1 {
-    font-size: 1.5rem;
-  }
-
-  .kpi-section {
-    padding: 0.75rem;
+    font-size: 1.125rem;
   }
 
   .kpi-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .workspace {
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
     gap: 0.75rem;
-  }
-
-  .full-width-section {
-    padding: 0.75rem;
-  }
-
-  .charts-grid {
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .chart-container,
-  .touchpoints-container,
-  .panel {
-    border-radius: 6px;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-header {
-    padding: 0.75rem;
-  }
-
-  .header-content h1 {
-    font-size: 1.25rem;
-  }
-
-  .header-time {
-    font-size: 1.125rem;
-  }
-
-  .kpi-grid {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-
-  .stat-row {
-    padding: 0.5rem 0;
-  }
-
-  .stat-value {
-    font-size: 1.125rem;
   }
 }
 </style>
